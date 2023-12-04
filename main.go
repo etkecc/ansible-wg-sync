@@ -21,7 +21,7 @@ var (
 func main() {
 	path, err := xdg.SearchConfigFile("ansible-wg-sync.yml")
 	if err != nil {
-		logger.Fatal("cannot find the ansible-ssh.yml config file: ", err, ", ensure it is in $XDG_CONFIG_DIRS or $XDG_CONFIG_HOME of the root(!) user")
+		logger.Fatal("cannot find the ansible-wg-sync.yml config file: ", err, ", ensure it is in $XDG_CONFIG_DIRS or $XDG_CONFIG_HOME of the root(!) user")
 	}
 	if !isRoot() {
 		logger.Println("WARNING: not running as root, profile updates will fail")
@@ -29,7 +29,7 @@ func main() {
 
 	cfg, err := config.Read(path)
 	if err != nil {
-		logger.Fatal("cannot read the ansible-ssh.yml config file:", err)
+		logger.Fatal("cannot read the ", path, " config file:", err)
 	}
 	withDebug = cfg.Debug
 	allowedIPs := getAllowedIPs(cfg)
