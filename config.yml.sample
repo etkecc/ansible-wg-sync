@@ -1,0 +1,13 @@
+inventory_paths: # list of all inventory paths
+  - ./hosts
+  - /home/user/another-inventory/hosts
+wg_profile_path: /etc/wireguard/wg0.confg # (optional) wireguard profile
+nm_profile_path: /etc/NetworkManager/system-connections/wg0.nmconnection # (optional) network manager profile
+allowed_ips: # (optional) list of allowed ips that should be always added
+  - 1.2.3.4
+table: 1234 # (optional) table
+post_up: [] # (optional) PostUp
+post_down: [] # (optional PostDown
+debug: false # show debug info
+
+# vi: ft=yaml
