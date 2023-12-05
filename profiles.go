@@ -1,70 +1,37 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"gitlab.com/etke.cc/int/ansible-wg-sync/config"
 )
 
-func handleNetworkManager(cfg *config.Config, allowedIPs []string) error {
-	if cfg.NMProfilePath == "" {
-		return nil
-	}
-
-	logger.Println("updating NetworkManager profile", cfg.NMProfilePath)
-	if err := updateNMProfile(allowedIPs, cfg.NMProfilePath); err != nil {
-		return err
-	}
-
-	logger.Println("reloading NetworkManager")
-	if err := exec.Command("nmcli", "connection", "reload").Run(); err != nil {
-		return err
-	}
-
-	logger.Println("restarting NetworkManager connection")
-	if err := exec.Command("nmcli", "connection", "down", cfg.NMProfilePath).Run(); err != nil { //nolint:gosec // that's ok
-		logger.Println("failed to stop NetworkManager connection:", err)
-	}
-
-	return exec.Command("nmcli", "connection", "up", cfg.NMProfilePath).Run() //nolint:gosec // that's ok
-}
-
-func updateNMProfile(allowedIPs []string, path string) error {
-	contents, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	lines := strings.Split(string(contents), "\n")
-	for i, line := range lines {
-		if strings.HasPrefix(line, "allowed-ips=") {
-			lines[i] = "allowed-ips=" + strings.Join(allowedIPs, ";") + ";" // add trailing semicolon
-			break
-		}
-	}
-	contents = []byte(strings.Join(lines, "\n"))
-	return os.WriteFile(path, contents, 0o600)
-}
-
 func handleWireGuard(cfg *config.Config, allowedIPs, postUp, postDown []string) error {
-	if cfg.WGProfilePath == "" {
+	if cfg.ProfilePath == "" {
 		return nil
 	}
 
-	logger.Println("updating WireGuard profle", cfg.WGProfilePath)
-	if err := updateWGProfile(allowedIPs, postUp, postDown, cfg.WGProfilePath, cfg.Table); err != nil {
+	logger.Println("updating WireGuard profle", cfg.ProfilePath)
+	name := strings.Replace(filepath.Base(cfg.ProfilePath), filepath.Ext(cfg.ProfilePath), "", 1)
+	if err := updateWGProfile(name, allowedIPs, postUp, postDown, cfg.ProfilePath, cfg.Table); err != nil {
 		return err
 	}
 
-	name := strings.Replace(filepath.Base(cfg.WGProfilePath), filepath.Ext(cfg.WGProfilePath), "", 1)
 	logger.Println("reloading WireGuard interface", name)
+	if err := exec.Command("wg", "show", name).Run(); err != nil { // if interface does not exist, start it
+		return exec.Command("systemctl", "start", "wg-quick@"+name).Run() //nolint:gosec // that's ok
+	}
+	// if interface exists, restart it
 	return exec.Command("systemctl", "restart", "wg-quick@"+name).Run() //nolint:gosec // that's ok
 }
 
-func updateWGProfile(allowedIPs, postUp, postDown []string, path string, table int) error {
+func updateWGProfile(name string, allowedIPs, postUp, postDown []string, path string, table int) error {
 	contents, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -84,6 +51,24 @@ func updateWGProfile(allowedIPs, postUp, postDown []string, path string, table i
 			lines[i] = "PostDown = " + strings.Join(postDown, "; ")
 		}
 	}
-	contents = []byte(strings.Join(lines, "\n"))
+
+	contents, err = applyVars(strings.Join(lines, "\n"), map[string]any{"name": name, "table": table})
+	if err != nil {
+		return err
+	}
+
 	return os.WriteFile(path, contents, 0o600)
+}
+
+func applyVars(tplString string, vars map[string]any) ([]byte, error) {
+	var result bytes.Buffer
+	tpl, err := template.New("template").Parse(tplString)
+	if err != nil {
+		return nil, err
+	}
+	err = tpl.Execute(&result, vars)
+	if err != nil {
+		return nil, err
+	}
+	return result.Bytes(), nil
 }

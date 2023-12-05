@@ -8,8 +8,7 @@ import (
 
 type Config struct {
 	InventoryPaths []string `yaml:"inventory_paths"` // ansible inventory paths
-	WGProfilePath  string   `yaml:"wg_profile_path"` // wireguard profile path
-	NMProfilePath  string   `yaml:"nm_profile_path"` // network manager profile path
+	ProfilePath    string   `yaml:"profile_path"`    // wireguard profile path
 	AllowedIPs     []string `yaml:"allowed_ips"`     // allowed ips
 	Table          int      `yaml:"table"`           // routing table
 	PostUp         []string `yaml:"post_up"`         // post up commands

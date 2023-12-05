@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"net"
 	"os"
 	"regexp"
+	"sort"
+	"strings"
 
 	"github.com/adrg/xdg"
 
@@ -41,38 +44,6 @@ func main() {
 	if err := handleWireGuard(cfg, allowedIPs, cfg.PostUp, cfg.PostDown); err != nil {
 		logger.Println("ERROR: cannot update WireGuard profile:", err)
 	}
-	if err := handleNetworkManager(cfg, allowedIPs); err != nil {
-		logger.Println("ERROR: cannot update NetworkManager profile:", err)
-	}
-}
-
-func parseCIDR(host string) string {
-	// if CIDR, return as is
-	if _, _, err := net.ParseCIDR(host); err == nil {
-		return host
-	}
-	// if IP, return CIDR
-	if ip := net.ParseIP(host); ip != nil {
-		return ip.String() + "/32"
-	}
-	// check if domain
-	if len(host) < 4 || len(host) > 77 {
-		return ""
-	}
-	if !domainRegex.MatchString(host) {
-		return ""
-	}
-
-	// if domain with A record, return CIDR
-	if ips, err := net.LookupIP(host); err == nil && len(ips) > 0 {
-		return ips[0].String() + "/32"
-	}
-	// if domain with CNAME record, run again
-	if cname, err := net.LookupCNAME(host); err == nil && cname != "" {
-		return parseCIDR(cname)
-	}
-
-	return ""
 }
 
 func getAllowedIPs(cfg *config.Config) []string {
@@ -105,7 +76,46 @@ func getAllowedIPs(cfg *config.Config) []string {
 			allowedIPs = append(allowedIPs, cidr)
 		}
 	}
-	return ansible.Uniq(allowedIPs)
+	allowedIPs = ansible.Uniq(allowedIPs)
+	sortIPs(allowedIPs)
+	return allowedIPs
+}
+
+func parseCIDR(host string) string {
+	// if CIDR, return as is
+	if _, _, err := net.ParseCIDR(host); err == nil {
+		return host
+	}
+	// if IP, return CIDR
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.String() + "/32"
+	}
+	// check if domain
+	if len(host) < 4 || len(host) > 77 {
+		return ""
+	}
+	if !domainRegex.MatchString(host) {
+		return ""
+	}
+
+	// if domain with A record, return CIDR
+	if ips, err := net.LookupIP(host); err == nil && len(ips) > 0 {
+		return ips[0].String() + "/32"
+	}
+	// if domain with CNAME record, run again
+	if cname, err := net.LookupCNAME(host); err == nil && cname != "" {
+		return parseCIDR(cname)
+	}
+
+	return ""
+}
+
+func sortIPs(ips []string) {
+	sort.Slice(ips, func(i, j int) bool {
+		ipI := strings.Split(ips[i], "/")[0]
+		ipJ := strings.Split(ips[j], "/")[0]
+		return bytes.Compare(net.ParseIP(ipI), net.ParseIP(ipJ)) < 0
+	})
 }
 
 func isRoot() bool {
