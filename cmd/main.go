@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
+	"github.com/etkecc/go-ansible"
 
-	"gitlab.com/etke.cc/go/ansible"
-	"gitlab.com/etke.cc/int/ansible-wg-sync/config"
+	"github.com/etkecc/ansible-wg-sync/internal/config"
 )
 
 var (

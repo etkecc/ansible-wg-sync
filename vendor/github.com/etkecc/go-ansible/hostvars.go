@@ -26,28 +26,30 @@ var (
 )
 
 func NewHostVarsFile(f string) (HostVars, error) {
-	if !FileExists(f) {
-		return nil, os.ErrNotExist
-	}
-
-	bs, err := os.ReadFile(f)
+	fh, err := os.Open(f)
 	if err != nil {
-		return HostVars{}, err
+		return nil, err
 	}
+	defer fh.Close()
 
-	return NewHostVarsParser(bs)
+	var vars map[string]any
+	if err = yaml.NewDecoder(fh).Decode(&vars); err != nil {
+		return nil, err
+	}
+	precacheDomain(vars)
+	return vars, nil
 }
 
-func NewHostVarsParser(input []byte) (HostVars, error) {
-	var vars map[string]any
-	err := yaml.Unmarshal(input, &vars)
-	return vars, err
+func precacheDomain(hv HostVars) {
+	base, domain := hv.Domain()
+	hv[cachePrefix+"domain"] = domain
+	hv[cachePrefix+"base"] = base
 }
 
 // HasTODOs returns true if there are any TODOs in hostvars
 func (hv HostVars) HasTODOs() bool {
 	for k := range hv {
-		if strings.ToLower(hv.String(k)) == todo {
+		if strings.ToLower(k) == todo || strings.ToLower(hv.String(k)) == todo {
 			return true
 		}
 	}
@@ -176,9 +178,6 @@ func (hv HostVars) Domain() (base, domain string) {
 	base = strings.TrimSpace(hv.String("base_domain"))
 	domain = strings.ReplaceAll(strings.TrimSpace(hv.String("matrix_domain")), "{{ base_domain }}", base)
 
-	hv[cachePrefix+"base"] = base
-	hv[cachePrefix+"domain"] = domain
-
 	return base, domain
 }
 
@@ -229,12 +228,13 @@ func (hv HostVars) Email() string {
 // Emails returns all emails
 func (hv HostVars) Emails() []string {
 	emails := []string{}
-	keys := []string{"etke_service_monitoring_email", "matrix_monitoring_email", "devture_traefik_config_certificatesResolvers_acme_email", "matrix_ssl_lets_encrypt_support_email", "etke_subscription_email"}
+	keys := []string{"etke_service_monitoring_email", "matrix_monitoring_email", "devture_traefik_config_certificatesResolvers_acme_email", "matrix_ssl_lets_encrypt_support_email", "etke_subscription_email", "etke_payment_email"}
 	for _, key := range keys {
 		if email := hv.String(key); email != "" {
 			emails = append(emails, email)
 		}
 	}
+	emails = append(emails, hv.StringSlice("etke_subscription_emails")...)
 	return Uniq(emails)
 }
 

@@ -1,8 +1,6 @@
 package ansible
 
 import (
-	"errors"
-	"os"
 	"sort"
 	"strconv"
 )
@@ -26,16 +24,6 @@ func MapKeys[T string, V any](data map[string]V) []string {
 
 	sort.Strings(keys)
 	return keys
-}
-
-// FileExists checks if file exists
-func FileExists(f string) bool {
-	_, err := os.Stat(f)
-	if err == nil {
-		return true
-	}
-
-	return !errors.Is(err, os.ErrNotExist)
 }
 
 // Unquote is wrapper around strconv.Unquote, but will return unmodified input string on error

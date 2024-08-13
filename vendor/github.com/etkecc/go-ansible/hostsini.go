@@ -2,7 +2,7 @@ package ansible
 
 import (
 	"bufio"
-	"bytes"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -41,6 +41,7 @@ type Host struct {
 	SSHPass    string   // host ssh password
 	BecomePass string   // host become password
 	PrivateKey string   // host ssh private key
+	OrderedAt  string
 }
 
 func (h *Host) FindFile(name string) (string, bool) {
@@ -87,23 +88,16 @@ func (h *Host) HasTODOs() bool {
 }
 
 func NewHostsFile(f string, defaults *Host, only ...string) (*Inventory, error) {
-	if !FileExists(f) {
-		return nil, os.ErrNotExist
-	}
-
-	bs, err := os.ReadFile(f)
+	fh, err := os.Open(f)
 	if err != nil {
-		return &Inventory{}, err
+		return nil, err
 	}
+	defer fh.Close()
 
-	return NewHostsParser(bs, defaults, only...), nil
-}
-
-func NewHostsParser(input []byte, defaults *Host, only ...string) *Inventory {
 	hosts := &Inventory{only: only}
 	hosts.init()
-	hosts.parse(input, defaults)
-	return hosts
+	hosts.parse(fh, defaults)
+	return hosts, nil
 }
 
 func (i *Inventory) init() {
@@ -165,10 +159,9 @@ func (i *Inventory) initGroup(name string) {
 	}
 }
 
-func (i *Inventory) parse(input []byte, defaults *Host) {
+func (i *Inventory) parse(input io.Reader, defaults *Host) {
 	activeGroupName := defaultGroup
-	buff := bytes.NewBuffer(input)
-	scanner := bufio.NewScanner(buff)
+	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		line := scanner.Text()
 		switch parseType(line) { //nolint:exhaustive // intended

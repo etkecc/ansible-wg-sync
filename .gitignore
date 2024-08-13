@@ -1,3 +1,1 @@
-dist/
-/ansible.cfg
-/ansible-ssh
+/cover.out

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"gitlab.com/etke.cc/int/ansible-wg-sync/config"
+	"github.com/etkecc/ansible-wg-sync/internal/config"
 )
 
 func handleWireGuard(cfg *config.Config, allowedIPs, postUp, postDown []string) error {

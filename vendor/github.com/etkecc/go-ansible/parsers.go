@@ -98,6 +98,9 @@ func parseHost(line string, only []string) *Host {
 
 	host := parseParams(params)
 	host.Name = hostname
+	if host.Host == "" {
+		return nil
+	}
 	if host.Port == 0 {
 		host.Port = port
 	}
@@ -127,6 +130,8 @@ func parseParams(params []string) *Host {
 			vars.PrivateKey = Unquote(parts[1])
 		case "ansible_become_password":
 			vars.BecomePass = Unquote(parts[1])
+		case "ordered_at":
+			vars.OrderedAt = Unquote(parts[1])
 		}
 	}
 

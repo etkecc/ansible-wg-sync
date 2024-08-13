@@ -2,7 +2,7 @@ package ansible
 
 import (
 	"bufio"
-	"bytes"
+	"io"
 	"os"
 	"strings"
 )
@@ -17,30 +17,22 @@ func NewAnsibleCfgFile(f string) (*AnsibleCfg, error) {
 	if f == "" {
 		return nil, nil
 	}
-
-	if !FileExists(f) {
-		return nil, os.ErrNotExist
-	}
-
-	bs, err := os.ReadFile(f)
+	fh, err := os.Open(f)
 	if err != nil {
-		return &AnsibleCfg{Config: make(map[string]map[string]string)}, err
+		return nil, err
 	}
+	defer fh.Close()
 
-	return NewAnsibleCfgParser(bs), nil
-}
-
-func NewAnsibleCfgParser(input []byte) *AnsibleCfg {
 	cfg := &AnsibleCfg{}
-	cfg.parse(input)
-	return cfg
+	cfg.parse(fh)
+	return cfg, nil
 }
 
-func (a *AnsibleCfg) parse(input []byte) {
+func (a *AnsibleCfg) parse(input io.Reader) {
 	a.Config = make(map[string]map[string]string)
 
 	activeSectionName := defaultSection
-	scanner := bufio.NewScanner(bytes.NewBuffer(input))
+	scanner := bufio.NewScanner(input)
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
