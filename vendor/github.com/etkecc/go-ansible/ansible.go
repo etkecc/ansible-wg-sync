@@ -7,6 +7,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/etkecc/go-kit"
 )
 
 // ParseInventory using ansible.cfg and hosts (ini) files
@@ -118,7 +120,7 @@ func parseAdditionalFiles(invPaths []string, name string) (dirs []string, files 
 
 	}
 
-	return Uniq(dirs), files
+	return kit.Uniq(dirs), files
 }
 
 func findFilesAndDirs(src, prepend string) (dirs []string, files map[string]string, err error) {

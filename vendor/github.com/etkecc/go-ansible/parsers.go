@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/etkecc/go-kit"
 	"golang.org/x/exp/slices"
 )
 
@@ -71,7 +72,7 @@ func parseVar(line string) (key, value string) {
 	if len(parts) != 2 {
 		return "", ""
 	}
-	return strings.TrimSpace(parts[0]), Unquote(strings.TrimSpace(parts[1]))
+	return strings.TrimSpace(parts[0]), kit.Unquote(strings.TrimSpace(parts[1]))
 }
 
 func parseHost(line string, only []string) *Host {
@@ -119,19 +120,19 @@ func parseParams(params []string) *Host {
 		}
 		switch strings.TrimSpace(parts[0]) {
 		case "ansible_host":
-			vars.Host = Unquote(parts[1])
+			vars.Host = kit.Unquote(parts[1])
 		case "ansible_port", "ansible_ssh_port":
-			vars.Port, _ = strconv.Atoi(Unquote(parts[1])) //nolint:errcheck // should not be a big problem
+			vars.Port, _ = strconv.Atoi(kit.Unquote(parts[1])) //nolint:errcheck // should not be a big problem
 		case "ansible_user":
-			vars.User = Unquote(parts[1])
+			vars.User = kit.Unquote(parts[1])
 		case "ansible_ssh_pass":
-			vars.SSHPass = Unquote(parts[1])
+			vars.SSHPass = kit.Unquote(parts[1])
 		case "ansible_ssh_private_key_file":
-			vars.PrivateKey = Unquote(parts[1])
+			vars.PrivateKey = kit.Unquote(parts[1])
 		case "ansible_become_password":
-			vars.BecomePass = Unquote(parts[1])
+			vars.BecomePass = kit.Unquote(parts[1])
 		case "ordered_at":
-			vars.OrderedAt = Unquote(parts[1])
+			vars.OrderedAt = kit.Unquote(parts[1])
 		}
 	}
 
@@ -198,5 +199,5 @@ func parseAllInventoryPaths(static string, cfg *AnsibleCfg) []string {
 		return all
 	}
 
-	return Uniq(append(all, invpaths...))
+	return kit.Uniq(append(all, invpaths...))
 }

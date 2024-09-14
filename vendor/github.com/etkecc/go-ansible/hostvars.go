@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/etkecc/go-kit"
 	"golang.org/x/exp/slices"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -235,7 +236,7 @@ func (hv HostVars) Emails() []string {
 		}
 	}
 	emails = append(emails, hv.StringSlice("etke_subscription_emails")...)
-	return Uniq(emails)
+	return kit.Uniq(emails)
 }
 
 // MaintenanceEnabled returns bool

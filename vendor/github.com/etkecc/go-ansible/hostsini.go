@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/etkecc/go-kit"
 	"golang.org/x/exp/slices"
 )
 
@@ -138,7 +139,7 @@ func (i *Inventory) findAllGroups(groups []string) []string {
 			}
 		}
 	}
-	all = Uniq(all)
+	all = kit.Uniq(all)
 	if strings.Join(all, ",") != cachekey {
 		all = i.findAllGroups(all)
 	}
@@ -209,7 +210,7 @@ func (i *Inventory) groupParams(group string) []string {
 
 // getGroupVars returns merged group vars. Experimental
 func (i *Inventory) getGroupVars(groups []string) *Host {
-	cachekey := strings.Join(Uniq(groups), ",")
+	cachekey := strings.Join(kit.Uniq(groups), ",")
 	cached := i.cacheGroupVars[cachekey]
 	if cached != nil {
 		return cached
@@ -230,7 +231,7 @@ func (i *Inventory) getGroupVars(groups []string) *Host {
 
 func (i *Inventory) finalize(defaults *Host) {
 	for _, host := range i.Hosts {
-		host.Groups = i.findAllGroups(Uniq(host.Groups))
+		host.Groups = i.findAllGroups(kit.Uniq(host.Groups))
 		host = MergeHost(host, i.getGroupVars(host.Groups))
 		host = MergeHost(host, defaults)
 		i.Hosts[host.Name] = host

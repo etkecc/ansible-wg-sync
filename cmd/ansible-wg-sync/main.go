@@ -11,6 +11,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/etkecc/go-ansible"
+	"github.com/etkecc/go-kit"
 
 	"github.com/etkecc/ansible-wg-sync/internal/config"
 )
@@ -76,7 +77,7 @@ func getAllowedIPs(cfg *config.Config) []string {
 			allowedIPs = append(allowedIPs, cidr)
 		}
 	}
-	allowedIPs = ansible.Uniq(allowedIPs)
+	allowedIPs = kit.Uniq(allowedIPs)
 	sortIPs(allowedIPs)
 	return allowedIPs
 }
