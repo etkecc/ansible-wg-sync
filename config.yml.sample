@@ -4,6 +4,8 @@ inventory_paths: # list of all inventory paths
 profile_path: /etc/wireguard/wg0.confg # wireguard profile
 allowed_ips: # (optional) list of allowed ips that should be always added
   - 1.2.3.4
+excluded_ips: # (optional) list of ips that should be excluded
+  - 4.3.2.1
 table: 1234 # (optional) table
 post_up: [] # (optional) PostUp, supports {{ .table }} and {{ .name }} vars
 post_down: [] # (optional PostDown, supports {{ .table }} and {{ .name }} vars

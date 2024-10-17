@@ -10,6 +10,7 @@ type Config struct {
 	InventoryPaths []string `yaml:"inventory_paths"` // ansible inventory paths
 	ProfilePath    string   `yaml:"profile_path"`    // wireguard profile path
 	AllowedIPs     []string `yaml:"allowed_ips"`     // allowed ips
+	ExcludedIPs    []string `yaml:"excluded_ips"`    // excluded ips
 	Table          int      `yaml:"table"`           // routing table
 	PostUp         []string `yaml:"post_up"`         // post up commands
 	PostDown       []string `yaml:"post_down"`       // post down commands

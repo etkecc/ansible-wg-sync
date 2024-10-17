@@ -47,15 +47,30 @@ func main() {
 	}
 }
 
+// getAllowedIPs returns a list of allowed IPs from the config file and inventory files
+//
+//nolint:gocognit // TODO: refactor
 func getAllowedIPs(cfg *config.Config) []string {
 	allowedIPs := []string{}
+	excludedIPs := map[string]bool{}
+	for _, ip := range cfg.ExcludedIPs {
+		cidr := parseCIDR(ip)
+		if cidr == "" {
+			debug("excluded IP", ip, "is not an IP address")
+			continue
+		}
+		excludedIPs[cidr] = true
+	}
+
 	for _, ip := range cfg.AllowedIPs {
 		cidr := parseCIDR(ip)
 		if cidr == "" {
 			debug("allowed IP", ip, "is not an IP address")
 			continue
 		}
-		allowedIPs = append(allowedIPs, cidr)
+		if !excludedIPs[cidr] {
+			allowedIPs = append(allowedIPs, cidr)
+		}
 	}
 
 	for _, invPath := range cfg.InventoryPaths {
@@ -74,7 +89,9 @@ func getAllowedIPs(cfg *config.Config) []string {
 				debug("host", host.Host, "is not an IP address")
 				continue
 			}
-			allowedIPs = append(allowedIPs, cidr)
+			if !excludedIPs[cidr] {
+				allowedIPs = append(allowedIPs, cidr)
+			}
 		}
 	}
 	allowedIPs = kit.Uniq(allowedIPs)
