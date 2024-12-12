@@ -5,11 +5,15 @@ import "cmp"
 // Uniq removes duplicates from slice
 func Uniq(slice []string) []string {
 	uniq := map[string]struct{}{}
+	result := []string{}
 	for _, k := range slice {
-		uniq[k] = struct{}{}
+		if _, ok := uniq[k]; !ok {
+			uniq[k] = struct{}{}
+			result = append(result, k)
+		}
 	}
 
-	return MapKeys(uniq)
+	return result
 }
 
 // MergeSlices and remove duplicates
@@ -48,4 +52,11 @@ func Chunk[T any](items []T, chunkSize int) (chunks [][]T) {
 		items, chunks = items[chunkSize:], append(chunks, items[0:chunkSize:chunkSize])
 	}
 	return append(chunks, items)
+}
+
+// Reverse slice
+func Reverse[T any](slice []T) {
+	for i, j := 0, len(slice)-1; i < j; i, j = i+1, j-1 {
+		slice[i], slice[j] = slice[j], slice[i]
+	}
 }

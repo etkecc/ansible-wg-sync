@@ -128,7 +128,7 @@ func parseParams(params []string) *Host {
 		case "ansible_ssh_pass":
 			vars.SSHPass = kit.Unquote(parts[1])
 		case "ansible_ssh_private_key_file":
-			vars.PrivateKey = kit.Unquote(parts[1])
+			vars.PrivateKeys = kit.Uniq(append(vars.PrivateKeys, kit.Unquote(parts[1])))
 		case "ansible_become_password":
 			vars.BecomePass = kit.Unquote(parts[1])
 		case "ordered_at":
@@ -173,7 +173,7 @@ func parseDefaultsFromAnsibleCfg(cfg *AnsibleCfg) *Host {
 		base.User = user
 	}
 	if privkey := cfg.Config["defaults"]["private_key_file"]; privkey != "" {
-		base.PrivateKey = privkey
+		base.PrivateKeys = kit.Uniq(append(base.PrivateKeys, privkey))
 	}
 	if port := cfg.Config["defaults"]["remote_port"]; port != "" {
 		portI, err := strconv.Atoi(port)

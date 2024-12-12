@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/etkecc/go-kit"
 )
@@ -29,15 +30,25 @@ func ParseInventory(ansibleCfg, hostsini, limit string) *Inventory {
 	if inv == nil {
 		return nil
 	}
-	for name := range inv.Hosts {
-		inv.Hosts[name].Dirs, inv.Hosts[name].Files = parseAdditionalFiles(paths, name)
 
-		vars := parseHostVars(paths, name)
-		if vars == nil {
-			continue
-		}
-		inv.Hosts[name].Vars = vars
+	var wg sync.WaitGroup
+	for name := range inv.Hosts {
+		wg.Add(1)
+		go func(name string, wg *sync.WaitGroup) {
+			defer wg.Done()
+			inv.Hosts[name].Dirs, inv.Hosts[name].Files = parseAdditionalFiles(paths, name)
+
+			vars := parseHostVars(paths, name)
+			if vars == nil {
+				return
+			}
+			inv.Hosts[name].Vars = vars
+			if sshPrivateKey := inv.Hosts[name].Vars.String("ansible_ssh_private_key_file"); sshPrivateKey != "" {
+				inv.Hosts[name].PrivateKeys = kit.Uniq(append(inv.Hosts[name].PrivateKeys, sshPrivateKey))
+			}
+		}(name, &wg)
 	}
+	wg.Wait()
 	return inv
 }
 
@@ -48,6 +59,9 @@ func parseHostsFiles(paths, only []string, defaults *Host) *Inventory {
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			log.Println("cannot parse", path, "error:", err)
 			continue
+		}
+		if parsedInv != nil {
+			parsedInv.Paths = []string{path}
 		}
 
 		inv.Merge(parsedInv)
