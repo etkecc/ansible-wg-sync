@@ -217,7 +217,7 @@ func (hv HostVars) IsAdmin(input string) bool {
 
 // Email returns email
 func (hv HostVars) Email() string {
-	keys := []string{"etke_service_monitoring_email", "matrix_monitoring_email", "traefik_config_certificatesResolvers_acme_email", "matrix_ssl_lets_encrypt_support_email"}
+	keys := []string{"etke_service_monitoring_email", "etke_order_email", "etke_subscription_email"}
 	for _, key := range keys {
 		if email := hv.String(key); email != "" {
 			return email
@@ -229,7 +229,7 @@ func (hv HostVars) Email() string {
 // Emails returns all emails
 func (hv HostVars) Emails() []string {
 	emails := []string{}
-	keys := []string{"etke_service_monitoring_email", "matrix_monitoring_email", "traefik_config_certificatesResolvers_acme_email", "matrix_ssl_lets_encrypt_support_email", "etke_subscription_email", "etke_payment_email"}
+	keys := []string{"etke_service_monitoring_email", "etke_order_email", "etke_subscription_email"}
 	for _, key := range keys {
 		if email := hv.String(key); email != "" {
 			emails = append(emails, email)
