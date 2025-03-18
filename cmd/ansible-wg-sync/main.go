@@ -54,22 +54,26 @@ func getAllowedIPs(cfg *config.Config) []string {
 	allowedIPs := []string{}
 	excludedIPs := map[string]bool{}
 	for _, ip := range cfg.ExcludedIPs {
-		cidr := parseCIDR(ip)
-		if cidr == "" {
+		cidrs := determineCIDRs(ip)
+		if len(cidrs) == 0 {
 			debug("excluded IP", ip, "is not an IP address")
 			continue
 		}
-		excludedIPs[cidr] = true
+		for _, cidr := range cidrs {
+			excludedIPs[cidr] = true
+		}
 	}
 
 	for _, ip := range cfg.AllowedIPs {
-		cidr := parseCIDR(ip)
-		if cidr == "" {
+		cidrs := determineCIDRs(ip)
+		if len(cidrs) == 0 {
 			debug("allowed IP", ip, "is not an IP address")
 			continue
 		}
-		if !excludedIPs[cidr] {
-			allowedIPs = append(allowedIPs, cidr)
+		for _, cidr := range cidrs {
+			if !excludedIPs[cidr] {
+				allowedIPs = append(allowedIPs, cidr)
+			}
 		}
 	}
 
@@ -84,13 +88,15 @@ func getAllowedIPs(cfg *config.Config) []string {
 			continue
 		}
 		for _, host := range inv.Hosts {
-			cidr := parseCIDR(host.Host)
-			if cidr == "" {
+			cidrs := determineCIDRs(host.Host)
+			if len(cidrs) == 0 {
 				debug("host", host.Host, "is not an IP address")
 				continue
 			}
-			if !excludedIPs[cidr] {
-				allowedIPs = append(allowedIPs, cidr)
+			for _, cidr := range cidrs {
+				if !excludedIPs[cidr] {
+					allowedIPs = append(allowedIPs, cidr)
+				}
 			}
 		}
 	}
@@ -99,33 +105,49 @@ func getAllowedIPs(cfg *config.Config) []string {
 	return allowedIPs
 }
 
-func parseCIDR(host string) string {
+// determineCIDRs takes a host (CIDR or IPv4/IPv6 address or hostname) and determines the network CIDRs for it.
+// For IP addresses, a /32 or /128 CIDR is returned depending on the address type (IPv4 or IPv6, respectively).
+// For hostnames, a combination of multiple IPv4 and IPv6 CIDRs may be returned, depending on A/AAAA DNS records.
+func determineCIDRs(host string) []string {
 	// if CIDR, return as is
 	if _, _, err := net.ParseCIDR(host); err == nil {
-		return host
+		return []string{host}
 	}
 	// if IP, return CIDR
 	if ip := net.ParseIP(host); ip != nil {
-		return ip.String() + "/32"
+		if ip.To4() != nil {
+			return []string{ip.String() + "/32"}
+		} else {
+			return []string{ip.String() + "/128"}
+		}
 	}
 	// check if domain
 	if len(host) < 4 || len(host) > 77 {
-		return ""
+		return []string{}
 	}
 	if !domainRegex.MatchString(host) {
-		return ""
+		return []string{}
 	}
 
-	// if domain with A record, return CIDR
+	// if domain with A or AAAA records, return CIDR
 	if ips, err := net.LookupIP(host); err == nil && len(ips) > 0 {
-		return ips[0].String() + "/32"
+		result := []string{}
+		for _, ip := range ips {
+			if ip.To4() != nil {
+				result = append(result, ip.String() + "/32")
+			} else {
+				result = append(result, ip.String() + "/128")
+			}
+		}
+		return result
 	}
+
 	// if domain with CNAME record, run again
 	if cname, err := net.LookupCNAME(host); err == nil && cname != "" {
-		return parseCIDR(cname)
+		return determineCIDRs(cname)
 	}
 
-	return ""
+	return []string{}
 }
 
 func sortIPs(ips []string) {
