@@ -80,13 +80,19 @@ func filterOutUnsupportedIPs(lines, allowedIPs []string) []string {
 	ipv4, ipv6 := determineIPCapability(lines)
 	if !ipv4 {
 		allowedIPsNew := filterOutCIDRsContainingChar(allowedIPs, ".")
-		logger.Println("filtered out", len(allowedIPs)-len(allowedIPsNew), "IPv4 CIDRs due to the profile's lack of IPv4 support")
-		allowedIPs = allowedIPsNew
+		diff := len(allowedIPs) - len(allowedIPsNew)
+		if diff > 0 {
+			logger.Println("filtered out", diff, "IPv4 CIDRs due to the profile's lack of IPv4 support")
+			allowedIPs = allowedIPsNew
+		}
 	}
 	if !ipv6 {
 		allowedIPsNew := filterOutCIDRsContainingChar(allowedIPs, ":")
-		logger.Println("filtered out", len(allowedIPs)-len(allowedIPsNew), "IPv6 CIDRs due to the profile's lack of IPv6 support")
-		allowedIPs = allowedIPsNew
+		diff := len(allowedIPs) - len(allowedIPsNew)
+		if diff > 0 {
+			logger.Println("filtered out", diff, "IPv6 CIDRs due to the profile's lack of IPv6 support")
+			allowedIPs = allowedIPsNew
+		}
 	}
 
 	return allowedIPs
