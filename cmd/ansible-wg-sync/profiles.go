@@ -36,7 +36,26 @@ func updateWGProfile(name string, allowedIPs, postUp, postDown []string, path st
 	if err != nil {
 		return err
 	}
+
 	lines := strings.Split(string(contents), "\n")
+
+	// If an interface profile does not assign IPv4 and/or IPv6 address, then it's not capable of routing for that IP protocol.
+	// It's better to filter out the allowed IP address CIDRs to only what the interface can route,
+	// otherwise it could prevent other (better-suited) interfaces from handling these routes.
+	isIPv4Capable, isIPv6Capable := determineIPCapability(lines)
+
+	if !isIPv4Capable {
+		allowedIPsNew := filterOutCIDRsContainingChar(allowedIPs, ".")
+		logger.Println("filtered out", len(allowedIPs)-len(allowedIPsNew), "IPv4 CIDRs due to the profile's lack of IPv4 support")
+		allowedIPs = allowedIPsNew
+	}
+
+	if !isIPv6Capable {
+		allowedIPsNew := filterOutCIDRsContainingChar(allowedIPs, ":")
+		logger.Println("filtered out", len(allowedIPs)-len(allowedIPsNew), "IPv6 CIDRs due to the profile's lack of IPv6 support")
+		allowedIPs = allowedIPsNew
+	}
+
 	for i, line := range lines {
 		if strings.HasPrefix(line, "Table") && table > 0 {
 			lines[i] = "Table = " + strconv.Itoa(table)
@@ -58,6 +77,29 @@ func updateWGProfile(name string, allowedIPs, postUp, postDown []string, path st
 	}
 
 	return os.WriteFile(path, contents, 0o600)
+}
+
+// determineIPCapability tells if the WireGuard profile contains IPv4 and IPv6 addresses on the `Interface.Address` line
+func determineIPCapability(lines []string) (bool, bool) {
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Address") {
+			isIPv4Capable := strings.Contains(line, ".")
+			isIPv6Capable := strings.Contains(line, ":")
+			return isIPv4Capable, isIPv6Capable
+		}
+	}
+	return false, false
+}
+
+// filterOutCIDRsContainingChar removes CIDRs from the allowedIPs list if they contain a given character (e.g. "." for IPv4 and ":" for IPv6)
+func filterOutCIDRsContainingChar(allowedIPs []string, needle string) []string {
+	result := make([]string, 0, len(allowedIPs))
+	for _, ip := range allowedIPs {
+		if !strings.Contains(ip, needle) {
+			result = append(result, ip)
+		}
+	}
+	return result
 }
 
 func applyVars(tplString string, vars map[string]any) ([]byte, error) {

@@ -37,7 +37,7 @@ func main() {
 	}
 	withDebug = cfg.Debug
 	allowedIPs := getAllowedIPs(cfg)
-	logger.Println("loaded", len(allowedIPs), "allowed IPs")
+	logger.Println("discovered", len(allowedIPs), "allowed IPs")
 	if len(allowedIPs) == 0 {
 		logger.Println("WARNING: no allowed IPs found")
 		return
