@@ -3,18 +3,17 @@
 github.com/adrg/xdg
 github.com/adrg/xdg/internal/pathutil
 github.com/adrg/xdg/internal/userdirs
-# github.com/etkecc/go-ansible v0.0.0-20241016101553-06f3098da3e1
+# github.com/etkecc/go-ansible v0.0.0-20250131140828-a9b09ffb95ac
 ## explicit; go 1.22.0
 github.com/etkecc/go-ansible
-# github.com/etkecc/go-kit v1.5.0
+# github.com/etkecc/go-kit v1.6.0
 ## explicit; go 1.22
 github.com/etkecc/go-kit
-# golang.org/x/exp v0.0.0-20241210194714-1829a127f884
-## explicit; go 1.22.0
-golang.org/x/exp/constraints
+# golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
+## explicit; go 1.23.0
 golang.org/x/exp/slices
-# golang.org/x/sys v0.28.0
-## explicit; go 1.18
+# golang.org/x/sys v0.31.0
+## explicit; go 1.23.0
 golang.org/x/sys/windows
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
