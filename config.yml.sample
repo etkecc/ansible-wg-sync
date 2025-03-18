@@ -2,10 +2,15 @@ inventory_paths: # list of all inventory paths
   - ./hosts
   - /home/user/another-inventory/hosts
 profile_path: /etc/wireguard/wg0.confg # wireguard profile
-allowed_ips: # (optional) list of allowed ips that should be always added
+allowed_ips: # (optional) list of allowed IPs and CIDRs that should be always added
   - 1.2.3.4
-excluded_ips: # (optional) list of ips that should be excluded
+  - 5.3.2.1/32
+  - 10.0.0.0/8
+  - fd00::/8
+excluded_ips: # (optional) list of allowed IPs and CIDRs that should be excluded
   - 4.3.2.1
+  - 2.1.4.8/32
+  - 192.168.0.0/16
 table: 1234 # (optional) table
 post_up: [] # (optional) PostUp, supports {{ .table }} and {{ .name }} vars
 post_down: [] # (optional PostDown, supports {{ .table }} and {{ .name }} vars
