@@ -51,32 +51,7 @@ func main() {
 //
 //nolint:gocognit // TODO: refactor
 func getAllowedIPs(cfg *config.Config) []string {
-	allowedIPs := []string{}
-	excludedIPs := map[string]bool{}
-	for _, ip := range cfg.ExcludedIPs {
-		cidrs := determineCIDRs(ip)
-		if len(cidrs) == 0 {
-			debug("excluded IP", ip, "is not an IP address")
-			continue
-		}
-		for _, cidr := range cidrs {
-			excludedIPs[cidr] = true
-		}
-	}
-
-	for _, ip := range cfg.AllowedIPs {
-		cidrs := determineCIDRs(ip)
-		if len(cidrs) == 0 {
-			debug("allowed IP", ip, "is not an IP address")
-			continue
-		}
-		for _, cidr := range cidrs {
-			if !excludedIPs[cidr] {
-				allowedIPs = append(allowedIPs, cidr)
-			}
-		}
-	}
-
+	allowedIPs, excludedIPs := getConfigIPs(cfg)
 	for _, invPath := range cfg.InventoryPaths {
 		inv, err := ansible.NewHostsFile(invPath, &ansible.Host{})
 		if err != nil {
@@ -105,6 +80,37 @@ func getAllowedIPs(cfg *config.Config) []string {
 	return allowedIPs
 }
 
+// getConfigIPs returns a list of allowed IPs and a map of excluded IPs from the config file
+func getConfigIPs(cfg *config.Config) (allowedIPs []string, excludedIPs map[string]bool) {
+	allowedIPs = []string{}
+	excludedIPs = map[string]bool{}
+	for _, ip := range cfg.ExcludedIPs {
+		cidrs := determineCIDRs(ip)
+		if len(cidrs) == 0 {
+			debug("excluded IP", ip, "is not an IP address")
+			continue
+		}
+		for _, cidr := range cidrs {
+			excludedIPs[cidr] = true
+		}
+	}
+
+	for _, ip := range cfg.AllowedIPs {
+		cidrs := determineCIDRs(ip)
+		if len(cidrs) == 0 {
+			debug("allowed IP", ip, "is not an IP address")
+			continue
+		}
+		for _, cidr := range cidrs {
+			if !excludedIPs[cidr] {
+				allowedIPs = append(allowedIPs, cidr)
+			}
+		}
+	}
+
+	return allowedIPs, excludedIPs
+}
+
 // determineCIDRs takes a host (CIDR or IPv4/IPv6 address or hostname) and determines the network CIDRs for it.
 // For IP addresses, a /32 or /128 CIDR is returned depending on the address type (IPv4 or IPv6, respectively).
 // For hostnames, a combination of multiple IPv4 and IPv6 CIDRs may be returned, depending on A/AAAA DNS records.
@@ -115,11 +121,7 @@ func determineCIDRs(host string) []string {
 	}
 	// if IP, return CIDR
 	if ip := net.ParseIP(host); ip != nil {
-		if ip.To4() != nil {
-			return []string{ip.String() + "/32"}
-		} else {
-			return []string{ip.String() + "/128"}
-		}
+		return []string{ipToCIDR(ip)}
 	}
 	// check if domain
 	if len(host) < 4 || len(host) > 77 {
@@ -133,11 +135,7 @@ func determineCIDRs(host string) []string {
 	if ips, err := net.LookupIP(host); err == nil && len(ips) > 0 {
 		result := []string{}
 		for _, ip := range ips {
-			if ip.To4() != nil {
-				result = append(result, ip.String() + "/32")
-			} else {
-				result = append(result, ip.String() + "/128")
-			}
+			result = append(result, ipToCIDR(ip))
 		}
 		return result
 	}
@@ -156,6 +154,13 @@ func sortIPs(ips []string) {
 		ipJ := strings.Split(ips[j], "/")[0]
 		return bytes.Compare(net.ParseIP(ipI), net.ParseIP(ipJ)) < 0
 	})
+}
+
+func ipToCIDR(ip net.IP) string {
+	if ip.To4() != nil {
+		return ip.String() + "/32"
+	}
+	return ip.String() + "/128"
 }
 
 func isRoot() bool {
