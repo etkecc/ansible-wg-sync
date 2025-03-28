@@ -23,11 +23,16 @@ func handleWireGuard(cfg *config.Config, allowedIPs, postUp, postDown []string) 
 		return err
 	}
 
-	logger.Println("reloading WireGuard interface", name)
-	if err := exec.Command("wg", "show", name).Run(); err != nil { // if interface does not exist, start it
+	logger.Println("restarting WireGuard interface", name)
+
+	// If the interface doesn't exist, start the instantiated systemd service.
+	//
+	// Otherwise, restart it fully.
+	// Reloading (which uses `wg syncconf`) is less disruptive, but doesn't apply `AllowedIPs` changes.
+
+	if err := exec.Command("wg", "show", name).Run(); err != nil {
 		return exec.Command("systemctl", "start", "wg-quick@"+name).Run() //nolint:gosec // that's ok
 	}
-	// if interface exists, restart it
 	return exec.Command("systemctl", "restart", "wg-quick@"+name).Run() //nolint:gosec // that's ok
 }
 
